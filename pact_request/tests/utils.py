@@ -2,51 +2,12 @@ import glob
 import os
 import json
 
+from ..objects import PactResponse
+from ..objects import PactRequest
+
 
 SPEC_DIR = os.path.abspath(
     os.path.join(os.path.dirname(__file__), 'pact_specifications'))
-
-
-class SpecResponse(object):
-    def __init__(self, dictionary):
-        for key in dictionary.keys():
-            assert key in {'body', 'headers', 'status'}
-        self.body = dictionary.get('body', None)
-        self.headers = dictionary.get('headers', None)
-        self.status = dictionary.get('status', None)
-        self.content = dictionary
-
-    def __unicode__(self):
-        return unicode(self.__dict__)
-
-    def diff(self, actual):
-        # .status (integer match)
-        # .headers == name & values for expected
-        # .body == allow unexpected keys, no unexpected items in array
-        return []
-
-
-class SpecRequest(object):
-    def __init__(self, dictionary):
-        for key in dictionary.keys():
-            assert key in {'headers', 'path', 'body', 'method', 'query'}
-        self.body = dictionary.get('body', None)
-        self.headers = dictionary.get('headers', None)
-        self.path = dictionary.get('path', None)
-        self.method = dictionary.get('method', None)
-        self.query = dictionary.get('query', None)
-        self.content = dictionary
-
-    def __unicode__(self):
-        return unicode(self.__dict__)
-
-    def diff(self, actual):
-        # .method == (case-insensitive)
-        # .path == (care about trailing /)
-        # .headers == name & values for expected
-        # .body (no unexpected keys, no unexpected items in an array)
-        # .query ==
-        return []
 
 
 class SpecContent(object):
@@ -57,9 +18,9 @@ class SpecContent(object):
         self.match = bool(dictionary['match'])
         # Dictionary of content
         if request:
-            container = SpecRequest
+            container = PactRequest
         else:
-            container = SpecResponse
+            container = PactResponse
         self.expected = container(dictionary['expected'])
         self.actual = container(dictionary['actual'])
 
