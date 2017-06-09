@@ -14,9 +14,16 @@ class SpecResponse(object):
         self.body = dictionary.get('body', None)
         self.headers = dictionary.get('headers', None)
         self.status = dictionary.get('status', None)
+        self.content = dictionary
 
     def __unicode__(self):
         return unicode(self.__dict__)
+
+    def diff(self, actual):
+        # .status (integer match)
+        # .headers == name & values for expected
+        # .body == allow unexpected keys, no unexpected items in array
+        return []
 
 
 class SpecRequest(object):
@@ -28,9 +35,18 @@ class SpecRequest(object):
         self.path = dictionary.get('path', None)
         self.method = dictionary.get('method', None)
         self.query = dictionary.get('query', None)
+        self.content = dictionary
 
     def __unicode__(self):
         return unicode(self.__dict__)
+
+    def diff(self, actual):
+        # .method == (case-insensitive)
+        # .path == (care about trailing /)
+        # .headers == name & values for expected
+        # .body (no unexpected keys, no unexpected items in an array)
+        # .query ==
+        return []
 
 
 class SpecContent(object):
@@ -66,6 +82,12 @@ class SpecTest(object):
         self.description = os.path.splitext(basename)[0]
         with open(filename, 'r') as f:
             self.content = SpecContent(json.load(f), origin=='request')
+
+    def test_string(self):
+        return u'{origin}_{focus}_{description}'.format(
+            focus=self.focus,
+            origin=self.origin,
+            description=self.description)
 
     def __unicode__(self):
         return (
