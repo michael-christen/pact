@@ -42,7 +42,7 @@ class SpecTest(object):
         self.focus = focus
         self.description = os.path.splitext(basename)[0]
         with open(filename, 'r') as f:
-            self.content = SpecContent(json.load(f), origin=='request')
+            self.content = SpecContent(json.load(f), origin == 'request')
 
     def test_string(self):
         return u'{origin}_{focus}_{description}'.format(

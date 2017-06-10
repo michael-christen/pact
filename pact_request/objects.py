@@ -2,9 +2,6 @@ import urllib2
 
 from itertools import izip_longest
 
-unquote = urllib2.urlparse.unquote
-
-
 
 class Difference(object):
     def __init__(self, expected, actual):
@@ -35,8 +32,8 @@ class PactDiffEngine(object):
             if self.ignore_value_whitespace:
                 expected = expected.replace(' ', '')
                 actual = actual.replace(' ', '')
-            expected = unquote(expected)
-            actual = unquote(actual)
+            expected = urllib2.urlparse.unquote(expected)
+            actual = urllib2.urlparse.unquote(actual)
         # Perform diffs
         if isinstance(expected, dict):
             return self.diff_hash(expected, actual)
@@ -60,11 +57,11 @@ class PactDiffEngine(object):
         assert isinstance(actual, dict)
         # Remove None values
         if self.allow_unexpected_keys:
-            actual = {k:v for k,v in actual.iteritems() if v is not None}
+            actual = {k: v for k, v in actual.iteritems() if v is not None}
         # Clean input
         if self.case_insensitive_keys:
-            actual = {k.lower(): v for k,v in actual.iteritems()}
-            expected = {k.lower(): v for k,v in expected.iteritems()}
+            actual = {k.lower(): v for k, v in actual.iteritems()}
+            expected = {k.lower(): v for k, v in expected.iteritems()}
         diffs = []
         if not self.allow_unexpected_keys and (
                 set(expected.keys()) != set(actual.keys())):
