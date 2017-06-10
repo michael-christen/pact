@@ -38,7 +38,7 @@ def diff_headers(expected, actual, allow_unexpected_keys=False):
 
 def diff_val(expected, actual, allow_unexpected_keys):
     if type(expected) != type(actual):
-        return ['mismatch type']
+        return ['{} mismatch type {}'.format(expected, actual)]
     if isinstance(expected, dict):
         return diff_hash(expected, actual, allow_unexpected_keys)
     elif isinstance(expected, (list, tuple)):
@@ -59,6 +59,8 @@ def diff_list(expected, actual, allow_unexpected_keys):
 def diff_hash(expected, actual, allow_unexpected_keys=False):
     assert isinstance(expected, dict)
     assert isinstance(actual, dict)
+    # Remove None values
+    actual = {k:v for k,v in actual.iteritems() if v is not None}
     diffs = []
     if not allow_unexpected_keys and (
             set(expected.keys()) != actual.keys()):
@@ -106,7 +108,7 @@ class PactResponse(object):
             diffs.extend(header_diffs)
         # .body == allow unexpected keys, no unexpected items in array
         diffs.extend(diff_val(
-            self.body, actual, allow_unexpected_keys=True))
+            self.body, actual.body, allow_unexpected_keys=True))
         print diffs
         return diffs
 
