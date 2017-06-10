@@ -32,7 +32,8 @@ def diff_headers(expected, actual, allow_unexpected_keys=False):
                 diffs.append('{} != {}'.format(actual_v, expected_v))
     if not allow_unexpected_keys and (
             set(expected.keys()) != set(actual.keys())):
-        diffs.append("unexpected keys")
+        diffs.append("unexpected keys {}, {}".format(
+            actual.keys(), expected.keys()))
     return diffs
 
 
@@ -53,6 +54,8 @@ def diff_list(expected, actual, allow_unexpected_keys):
     diffs = []
     for expected_v, actual_v in izip_longest(expected, actual):
         diffs.extend(diff_val(expected_v, actual_v, allow_unexpected_keys))
+    if len(expected) != len(actual):
+        diffs.append("None value at end of list")
     return diffs
 
 
@@ -64,7 +67,8 @@ def diff_hash(expected, actual, allow_unexpected_keys=False):
     diffs = []
     if not allow_unexpected_keys and (
             set(expected.keys()) != actual.keys()):
-        diffs.append("unexpected keys")
+        diffs.append("unexpected keys {}, {}".format(
+            actual.keys(), expected.keys()))
     for expected_k, expected_v in expected.iteritems():
         try:
             actual_v = actual[expected_k]
