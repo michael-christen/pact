@@ -18,105 +18,74 @@ class Difference(object):
             self.expected, self.actual)
 
 
-def diff_headers(expected, actual, allow_unexpected_keys=False):
-    # Case insensitive, remove whitespace
-    expected = {k.lower(): v.replace(' ', '') for k,v in expected.iteritems()}
-    actual = {k.lower(): v.replace(' ', '') for k,v in actual.iteritems()}
-    diffs = []
-    for expected_k, expected_v in expected.iteritems():
-        try:
-            actual_v = actual[expected_k]
-        except KeyError as e:
-            diffs.append(e)
+class PactDiffEngine(object):
+    def __init__(self,
+                 allow_unexpected_keys=False,
+                 ignore_value_whitespace=False,
+                 case_insensitive_keys=False):
+        self.allow_unexpected_keys = allow_unexpected_keys
+        self.ignore_value_whitespace = ignore_value_whitespace
+        self.case_insensitive_keys = case_insensitive_keys
+
+    def diff_val(self, expected, actual):
+        if type(expected) != type(actual):
+            return ['{} mismatch type {}'.format(expected, actual)]
+        # Input cleaning
+        if isinstance(expected, basestring):
+            if self.ignore_value_whitespace:
+                expected = expected.replace(' ', '')
+                actual = actual.replace(' ', '')
+            expected = unquote(expected)
+            actual = unquote(actual)
+        # Perform diffs
+        if isinstance(expected, dict):
+            return self.diff_hash(expected, actual)
+        elif isinstance(expected, (list, tuple)):
+            return self.diff_list(expected, actual)
+        elif expected != actual:
+            return ['{} not equal {}'.format(expected, actual)]
         else:
-            if expected_v != actual_v:
-                diffs.append('{} != {}'.format(actual_v, expected_v))
-    if not allow_unexpected_keys and (
-            set(expected.keys()) != set(actual.keys())):
-        diffs.append("unexpected keys {}, {}".format(
-            actual.keys(), expected.keys()))
-    return diffs
+            return []
 
-
-def diff_val(expected, actual, allow_unexpected_keys):
-    if type(expected) != type(actual):
-        return ['{} mismatch type {}'.format(expected, actual)]
-    if isinstance(expected, dict):
-        return diff_hash(expected, actual, allow_unexpected_keys)
-    elif isinstance(expected, (list, tuple)):
-        return diff_list(expected, actual, allow_unexpected_keys)
-    elif expected != actual:
-        return ['{} not equal {}'.format(expected, actual)]
-    else:
-        return []
-
-
-def diff_list(expected, actual, allow_unexpected_keys):
-    diffs = []
-    for expected_v, actual_v in izip_longest(expected, actual):
-        diffs.extend(diff_val(expected_v, actual_v, allow_unexpected_keys))
-    if len(expected) != len(actual):
-        diffs.append("None value at end of list")
-    return diffs
-
-
-def diff_hash(expected, actual, allow_unexpected_keys=False):
-    assert isinstance(expected, dict)
-    assert isinstance(actual, dict)
-    # Remove None values
-    if allow_unexpected_keys:
-        actual = {k:v for k,v in actual.iteritems() if v is not None}
-    diffs = []
-    if not allow_unexpected_keys and (
-            set(expected.keys()) != set(actual.keys())):
-        diffs.append("unexpected keys {}, {}".format(
-            actual.keys(), expected.keys()))
-    for expected_k, expected_v in expected.iteritems():
-        try:
-            actual_v = actual[expected_k]
-        except KeyError:
-            diffs.append("Key not found <{}>".format(expected_k))
-        else:
-            diffs.extend(diff_val(expected_v, actual_v, allow_unexpected_keys))
-    return diffs
-
-
-class PactResponse(object):
-    def __init__(self, dictionary):
-        for key in dictionary.keys():
-            assert key in {'body', 'headers', 'status'}
-        self.body = dictionary.get('body', None)
-        self.headers = dictionary.get('headers', {})
-        self.status = dictionary.get('status', None)
-        self.content = dictionary
-
-    def __unicode__(self):
-        return unicode(self.__dict__)
-
-    def diff(self, actual):
-        assert isinstance(actual, PactResponse)
+    def diff_list(self, expected, actual):
         diffs = []
-        # .status (integer match)
-        if self.status is None:
-            if actual.status is not None:
-                diffs.append("Actual not None")
-        else:
-            try:
-                if int(self.status) != int(actual.status):
-                    diffs.append('status')
-            except TypeError as e:
-                # actual.status is None
-                diffs.append(e)
-        # .headers == name & values for expected
-        header_diffs = diff_headers(
-            self.headers, actual.headers, allow_unexpected_keys=True)
-        if header_diffs:
-            diffs.extend(header_diffs)
-        # .body == allow unexpected keys, no unexpected items in array
-        diffs.extend(diff_val(
-            self.body, actual.body, allow_unexpected_keys=True))
-        print diffs
+        for expected_v, actual_v in izip_longest(expected, actual):
+            diffs.extend(self.diff_val(expected_v, actual_v))
+        if len(expected) != len(actual):
+            diffs.append("None value at end of list")
         return diffs
+
+    def diff_hash(self, expected, actual):
+        assert isinstance(expected, dict)
+        assert isinstance(actual, dict)
+        # Remove None values
+        if self.allow_unexpected_keys:
+            actual = {k:v for k,v in actual.iteritems() if v is not None}
+        # Clean input
+        if self.case_insensitive_keys:
+            actual = {k.lower(): v for k,v in actual.iteritems()}
+            expected = {k.lower(): v for k,v in expected.iteritems()}
+        diffs = []
+        if not self.allow_unexpected_keys and (
+                set(expected.keys()) != set(actual.keys())):
+            diffs.append("unexpected keys {}, {}".format(
+                actual.keys(), expected.keys()))
+        for expected_k, expected_v in expected.iteritems():
+            try:
+                actual_v = actual[expected_k]
+            except KeyError:
+                diffs.append("Key not found <{}>".format(expected_k))
+            else:
+                diffs.extend(self.diff_val(expected_v, actual_v))
+        return diffs
+
+
+class PactHeaderDiffEngine(PactDiffEngine):
+    def __init__(self):
+        super(PactHeaderDiffEngine, self).__init__(
+            allow_unexpected_keys=True,
+            ignore_value_whitespace=True,
+            case_insensitive_keys=True)
 
 
 class PactRequest(object):
@@ -140,21 +109,64 @@ class PactRequest(object):
         if self.method.lower() != actual.method.lower():
             diffs.append('method !=')
         # .path == (care about trailing /)
-        if self.path != actual.path:
-            diffs.append('path')
-        # .query ==
-        if type(self.query) == type(actual.query):
-            if unquote(self.query) != unquote(actual.query):
-                diffs.append('query')
-        else:
-            diffs.append('query wrong types')
+
+
+class PactResponse(object):
+    def __init__(self, dictionary):
+        for key in dictionary.keys():
+            assert key in {'body', 'headers', 'status'}
+        self.body = dictionary.get('body', None)
+        self.headers = dictionary.get('headers', {})
+        self.status = dictionary.get('status', None)
+        self.content = dictionary
+
+    def __unicode__(self):
+        return unicode(self.__dict__)
+
+    def diff(self, actual):
+        assert isinstance(actual, PactResponse)
+        diffs = []
+        # .status (integer match)
+        diffs.extend(PactDiffEngine().diff_val(self.status, actual.status))
         # .headers == name & values for expected
-        header_diffs = diff_headers(self.headers, actual.headers,
-                allow_unexpected_keys=True)
-        if header_diffs:
-            diffs.extend(header_diffs)
+        diffs.extend(PactHeaderDiffEngine().diff_hash(
+            self.headers, actual.headers))
+        # .body == allow unexpected keys, no unexpected items in array
+        diffs.extend(PactDiffEngine(
+                allow_unexpected_keys=True).diff_val(
+                    self.body, actual.body))
+        return diffs
+
+
+class PactRequest(object):
+    def __init__(self, dictionary):
+        for key in dictionary.keys():
+            assert key in {'headers', 'path', 'body', 'method', 'query'}
+        self.body = dictionary.get('body', None)
+        self.headers = dictionary.get('headers', None)
+        self.path = dictionary.get('path', '')
+        self.method = dictionary.get('method', '')
+        self.query = dictionary.get('query', '')
+        self.content = dictionary
+
+    def __unicode__(self):
+        return unicode(self.__dict__)
+
+    def diff(self, actual):
+        assert isinstance(actual, PactRequest)
+        diffs = []
+        # .method == (case-insensitive)
+        basic_diff_engine = PactDiffEngine()
+        diffs.extend(basic_diff_engine.diff_val(
+            self.method.lower(), actual.method.lower()))
+        # .path == (care about trailing /)
+        diffs.extend(basic_diff_engine.diff_val(self.path, actual.path))
+        # .query ==
+        diffs.extend(basic_diff_engine.diff_val(self.query, actual.query))
+        # .headers == name & values for expected
+        diffs.extend(PactHeaderDiffEngine().diff_hash(
+            self.headers, actual.headers))
         # .body (no unexpected keys, no unexpected items in an array)
-        diffs.extend(diff_val(
-            self.body, actual.body, allow_unexpected_keys=False))
-        print diffs
+        diffs.extend(PactDiffEngine().diff_val(
+            self.body, actual.body))
         return diffs
