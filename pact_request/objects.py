@@ -1,5 +1,6 @@
-from itertools import izip_longest
 import urllib2
+
+from itertools import izip_longest
 
 unquote = urllib2.urlparse.unquote
 
@@ -63,10 +64,11 @@ def diff_hash(expected, actual, allow_unexpected_keys=False):
     assert isinstance(expected, dict)
     assert isinstance(actual, dict)
     # Remove None values
-    actual = {k:v for k,v in actual.iteritems() if v is not None}
+    if allow_unexpected_keys:
+        actual = {k:v for k,v in actual.iteritems() if v is not None}
     diffs = []
     if not allow_unexpected_keys and (
-            set(expected.keys()) != actual.keys()):
+            set(expected.keys()) != set(actual.keys())):
         diffs.append("unexpected keys {}, {}".format(
             actual.keys(), expected.keys()))
     for expected_k, expected_v in expected.iteritems():
