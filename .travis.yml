@@ -1,7 +1,9 @@
 language: python
-script:
+before_script:
     - pip install -r requirements-dev.txt
-    - py.test
+script:
+    - flake8 -v pact_request
+    - py.test --cov=pact_request
 after_success:
     - pip install python-coveralls
     - coveralls
