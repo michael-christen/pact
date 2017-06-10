@@ -1,0 +1,7 @@
+language: python
+script:
+    - pip install -r requirements-dev.txt
+    - py.test
+after_success:
+    - pip install python-coveralls
+    - coveralls
