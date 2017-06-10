@@ -50,15 +50,6 @@ class SpecTest(object):
             origin=self.origin,
             description=self.description)
 
-    def __unicode__(self):
-        return (
-            u'Testing {description} of {focus} from {origin} with:\n{content}'
-            .format(
-                focus=self.focus,
-                origin=self.origin,
-                description=self.description,
-                content=self.content))
-
 
 def get_all_json_specs(version='1'):
     files = glob.glob('{}/version_{}/*/*/*.json'.format(SPEC_DIR, version))

@@ -3,16 +3,16 @@ import urllib2
 from itertools import izip_longest
 
 
-class Difference(object):
-    def __init__(self, expected, actual):
-        # Ensure there actually is a difference
-        assert expected != actual
-        self.expected = expected
-        self.actual = actual
-
-    def __unicode__(self):
-        return u'Expected {expected}, but got {actual}'.format(
-            self.expected, self.actual)
+# class Difference(object):
+#     def __init__(self, expected, actual):
+#         # Ensure there actually is a difference
+#         assert expected != actual
+#         self.expected = expected
+#         self.actual = actual
+#
+#     def __unicode__(self):
+#         return u'Expected {expected}, but got {actual}'.format(
+#             self.expected, self.actual)
 
 
 class PactDiffEngine(object):
