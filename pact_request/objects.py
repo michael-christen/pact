@@ -1,58 +1,46 @@
-from .diff import PactDiffEngine
-from .diff import PactHeaderDiffEngine
+from .diff import diff_hash_with_rules
 
 
 class PactResponse(object):
     def __init__(self, dictionary):
         for key in dictionary.keys():
             assert key in {'body', 'headers', 'status'}
-        self.body = dictionary.get('body', None)
-        self.headers = dictionary.get('headers', {})
-        self.status = dictionary.get('status', None)
         self.content = dictionary
 
     def __unicode__(self):
-        return unicode(self.__dict__)
+        return unicode(self.content)
 
     def diff(self, actual):
         assert isinstance(actual, PactResponse)
-        diffs = []
-        # .status (integer match)
-        diffs.extend(PactDiffEngine().diff_val(self.status, actual.status))
-        # .body == allow unexpected keys, no unexpected items in array
-        diffs.extend(PactDiffEngine(allow_unexpected_keys=True).diff_val(
-            self.body, actual.body))
-        # .headers == name & values for expected
-        diffs.extend(PactHeaderDiffEngine().diff_hash(
-            self.headers, actual.headers))
-        return diffs
+        return diff_hash_with_rules(
+            self.content, actual.content,
+            {
+                'body': dict(
+                    allow_unexpected_keys=True),
+                'headers': dict(
+                    allow_unexpected_keys=True,
+                    ignore_value_whitespace=True,
+                    case_insensitive_keys=True),
+            })
 
 
 class PactRequest(object):
     def __init__(self, dictionary):
         for key in dictionary.keys():
             assert key in {'headers', 'path', 'body', 'method', 'query'}
-        self.body = dictionary.get('body', None)
-        self.headers = dictionary.get('headers', None)
-        self.path = dictionary.get('path', '')
-        self.method = dictionary.get('method', '')
-        self.query = dictionary.get('query', '')
+        dictionary['method'] = dictionary.get('method', '').lower()
         self.content = dictionary
 
     def __unicode__(self):
-        return unicode(self.__dict__)
+        return unicode(self.content)
 
     def diff(self, actual):
         assert isinstance(actual, PactRequest)
-        basic_diff_engine = PactDiffEngine()
-        # Perform diffs
-        diffs = []
-        diffs.extend(basic_diff_engine.diff_val(self.method.lower(),
-                                                actual.method.lower()))
-        diffs.extend(basic_diff_engine.diff_val(self.path, actual.path))
-        diffs.extend(basic_diff_engine.diff_val(self.query, actual.query))
-        diffs.extend(basic_diff_engine.diff_val(self.body, actual.body))
-        # .headers == name & values for expected
-        diffs.extend(PactHeaderDiffEngine().diff_hash(
-            self.headers, actual.headers))
-        return diffs
+        return diff_hash_with_rules(
+            self.content, actual.content,
+            {
+                'headers': dict(
+                    allow_unexpected_keys=True,
+                    ignore_value_whitespace=True,
+                    case_insensitive_keys=True),
+            })

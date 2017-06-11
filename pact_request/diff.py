@@ -14,6 +14,18 @@ import urllib2
 #             self.expected, self.actual)
 
 
+def diff_hash_with_rules(expected, actual, key_rules):
+    assert isinstance(expected, dict)
+    assert isinstance(actual, dict)
+    diffs = []
+    for expected_k, expected_v in expected.iteritems():
+        rules = key_rules.get(expected_k, {})
+        diff_engine = PactDiffEngine(**rules)
+        actual_v = actual[expected_k]
+        diffs.extend(diff_engine.diff_val(expected_v, actual_v))
+    return diffs
+
+
 class PactDiffEngine(object):
     def __init__(self,
                  allow_unexpected_keys=False,
@@ -74,11 +86,3 @@ class PactDiffEngine(object):
             else:
                 diffs.extend(self.diff_val(expected_v, actual_v))
         return diffs
-
-
-class PactHeaderDiffEngine(PactDiffEngine):
-    def __init__(self):
-        super(PactHeaderDiffEngine, self).__init__(
-            allow_unexpected_keys=True,
-            ignore_value_whitespace=True,
-            case_insensitive_keys=True)
