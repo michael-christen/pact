@@ -1,4 +1,6 @@
 import urllib2
+import json
+import difflib
 
 
 class Difference(object):
@@ -44,6 +46,55 @@ class KeyNotFound(ActualNotFound):
     pass
 
 
+class PactDiffFormatter(object):
+    def format_diffs(self, diffs):
+        expected, actual = self.get_expected_and_actual_from_val(diffs)
+        expected_str = json.dumps(expected, indent=4, sort_keys=True)
+        actual_str = json.dumps(actual, indent=4, sort_keys=True)
+        d = difflib.Differ()
+        result = list(d.compare(expected_str.splitlines(1),
+                                actual_str.splitlines(1)))
+        return ''.join(result)
+
+    def get_expected_and_actual_from_val(self, diff):
+        if isinstance(diff, Difference):
+            return diff.expected, diff.actual
+        elif isinstance(diff, dict):
+            return self.get_expected_and_actual_from_hash(diff)
+        elif isinstance(diff, (list, tuple)):
+            return self.get_expected_and_actual_from_list(diff)
+        else:
+            return diff, diff
+
+    def get_expected_and_actual_from_hash(self, diff):
+        expected, actual = {}, {}
+        for k, v in diff.iteritems():
+            if isinstance(v, Difference):
+                actual_v = v.actual
+                expected_v = v.expected
+            else:
+                actual_v, expected_v = self.get_expected_and_actual_from_val(v)
+            if actual_v is not ABSENT:
+                actual[k] = actual_v
+            if expected_v is not ABSENT:
+                expected[k] = expected_v
+        return expected, actual
+
+    def get_expected_and_actual_from_list(self, diff):
+        expected, actual = [], []
+        for v in diff:
+            if isinstance(v, Difference):
+                actual_v = v.actual
+                expected_v = v.expected
+            else:
+                actual_v, expected_v = self.get_expected_and_actual_from_val(v)
+            if actual_v is not ABSENT:
+                actual.append(actual_v)
+            if expected_v is not ABSENT:
+                expected.append(expected_v)
+        return expected, actual
+
+
 def diff_hash_with_rules(expected, actual, key_rules):
     assert isinstance(expected, dict)
     assert isinstance(actual, dict)
@@ -57,7 +108,6 @@ def diff_hash_with_rules(expected, actual, key_rules):
         if diff_engine.diff_received:
             received_diff = True
     if received_diff:
-        print diff_tree
         return diff_tree
     else:
         return {}

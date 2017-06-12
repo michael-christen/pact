@@ -1,11 +1,10 @@
 # import requests
 # import requests_mock
-
 from parameterized import parameterized
 from unittest import TestCase
 
 from .utils import get_all_json_specs
-
+from ..diff import PactDiffFormatter
 
 # class StubClient(object):
 #     def get_value(self):
@@ -36,3 +35,6 @@ class TestSpec1(TestCase):
             self.assertEqual(len(diffs), 0)
         else:
             self.assertGreater(len(diffs), 0)
+        if diffs:
+            formatted_diff = PactDiffFormatter().format_diffs(diffs)
+            print formatted_diff
