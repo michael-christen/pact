@@ -1,30 +1,11 @@
-# import requests
-# import requests_mock
 from parameterized import parameterized
 from unittest import TestCase
 
 from .utils import get_all_json_specs
 from ..diff import PactDiffFormatter
 
-# class StubClient(object):
-#     def get_value(self):
-#         return requests.get('http://google.com').text
-#
-#
-# class TestBasic(TestCase):
-#     def setUp(self):
-#         self.client = StubClient()
-#
-#     def test_mock_request(self):
-#         with requests_mock.mock() as m:
-#             m.get('http://google.com', text='data')
-#             self.assertEqual(self.client.get_value(), 'data')
 
-
-class TestSpec1(TestCase):
-    def setUp(self):
-        self.specs = get_all_json_specs()
-
+class TestSpecVersion1(TestCase):
     @parameterized.expand([
         (spec.test_string(), spec.content)
         for spec in get_all_json_specs(version='1')])

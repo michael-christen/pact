@@ -7,9 +7,6 @@ class PactResponse(object):
             assert key in {'body', 'headers', 'status'}
         self.content = dictionary
 
-    def __unicode__(self):
-        return unicode(self.content)
-
     def diff(self, actual):
         assert isinstance(actual, PactResponse)
         return diff_hash_with_rules(
@@ -30,9 +27,6 @@ class PactRequest(object):
             assert key in {'headers', 'path', 'body', 'method', 'query'}
         dictionary['method'] = dictionary.get('method', '').lower()
         self.content = dictionary
-
-    def __unicode__(self):
-        return unicode(self.content)
 
     def diff(self, actual):
         assert isinstance(actual, PactRequest)

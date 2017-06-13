@@ -1,3 +1,4 @@
+import re
 import urllib2
 import json
 import difflib
@@ -9,10 +10,6 @@ class Difference(object):
         assert expected != actual
         self.expected = expected
         self.actual = actual
-
-    def __unicode__(self):
-        return u'Expected {expected}, but got {actual}'.format(
-            self.expected, self.actual)
 
 
 # Singleton
@@ -57,9 +54,9 @@ class PactDiffFormatter(object):
         return ''.join(result)
 
     def get_expected_and_actual_from_val(self, diff):
-        if isinstance(diff, Difference):
-            return diff.expected, diff.actual
-        elif isinstance(diff, dict):
+        # Should only get a Difference in hash and list
+        assert not isinstance(diff, Difference)
+        if isinstance(diff, dict):
             return self.get_expected_and_actual_from_hash(diff)
         elif isinstance(diff, (list, tuple)):
             return self.get_expected_and_actual_from_list(diff)
@@ -131,8 +128,8 @@ class PactDiffEngine(object):
         # Input cleaning
         if isinstance(expected, basestring):
             if self.ignore_value_whitespace:
-                expected = expected.replace(' ', '')
-                actual = actual.replace(' ', '')
+                expected = re.sub(r'\s', '', expected)
+                actual = re.sub(r'\s', '', actual)
             expected = urllib2.urlparse.unquote(expected)
             actual = urllib2.urlparse.unquote(actual)
         # Perform diffs
