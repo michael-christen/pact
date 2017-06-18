@@ -1,1 +1,2 @@
 httmock==1.2.6
+schematics==2.0.0

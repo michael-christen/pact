@@ -2,8 +2,8 @@ import glob
 import os
 import json
 
-from ..objects import PactResponse
-from ..objects import PactRequest
+from ..models import Response
+from ..models import Request
 
 
 SPEC_DIR = os.path.abspath(
@@ -18,9 +18,9 @@ class SpecContent(object):
         self.match = bool(dictionary['match'])
         # Dictionary of content
         if request:
-            container = PactRequest
+            container = Request
         else:
-            container = PactResponse
+            container = Response
         self.expected = container(dictionary['expected'])
         self.actual = container(dictionary['actual'])
 

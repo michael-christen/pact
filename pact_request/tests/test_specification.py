@@ -11,10 +11,10 @@ class TestSpecVersion1(TestCase):
         for spec in get_all_json_specs(version='1')])
     def test_pact_spec(self, name, spec_content):
         diffs = spec_content.expected.diff(spec_content.actual)
+        if diffs:
+            formatted_diff = PactDiffFormatter().format_diffs(diffs)
+            print formatted_diff
         if spec_content.match:
             self.assertEqual(len(diffs), 0)
         else:
             self.assertGreater(len(diffs), 0)
-        if diffs:
-            formatted_diff = PactDiffFormatter().format_diffs(diffs)
-            print formatted_diff
