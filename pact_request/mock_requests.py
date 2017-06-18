@@ -1,21 +1,10 @@
-import six
-
-from contextlib import contextmanager
 from functools import wraps
-from mock import patch
 from httmock import all_requests
 from httmock import HTTMock
 from httmock import response
 
-
-"""Blatant copy from responses.
-
-TODO: Why use this vs requests.Response?
-"""
-try:
-    from requests.packages.urllib3.response import HTTPResponse
-except ImportError:
-    from urllib3.response import HTTPResponse
+from .models import Request
+from .diff import PactDiffFormatter
 
 
 class ContextDecorator(object):
@@ -36,13 +25,40 @@ class ContextDecorator(object):
 
 
 class MockRequests(ContextDecorator):
-    def __init__(self):
+    def __init__(self, interactions=None):
+        # TODO: add provider, consumer spec
         super(MockRequests, self).__init__()
         self.htt_mock = HTTMock(self.response_content)
+        self.interactions = interactions or []
 
     @all_requests
     def response_content(self, url, request):
-        return {'status_code': 200}
+        # TODO: path ending has / appended to it
+        match = None
+        for interaction in self.interactions:
+            """Return response if request matches web_request."""
+            # TODO: query
+            # TODO: Figure out wtf is going on here
+            diff = interaction.request._content.diff(Request(dict(
+                headers=request.headers,
+                body=request.body,
+                path=request.url,
+                method=request.method)))
+            if not diff:
+                match = interaction.response
+                break
+            else:
+                # TODO: better debugging
+                print PactDiffFormatter().format_diffs(diff)
+        if match:
+            return response(
+                status_code=match.status,
+                content=match.body,
+                headers=match.headers,
+            )
+        else:
+            # Not found
+            return {'status_code': 404}
 
     def __enter__(self):
         self.htt_mock.__enter__()

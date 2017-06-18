@@ -11,8 +11,8 @@ class BaseModel(Model):
 
 
 class DiffModel(BaseModel):
-    def __init__(self, obj):
-        super(DiffModel, self).__init__(obj)
+    def __init__(self, obj, context=None):
+        super(DiffModel, self).__init__(obj, context=context)
         self._content = obj
 
     def diff(self, actual):
@@ -26,10 +26,10 @@ class Request(DiffModel):
     method = types.BaseType()
     query = types.BaseType()
 
-    def __init__(self, obj):
+    def __init__(self, obj, context=None):
         # TODO: Move to type
         obj['method'] = obj.get('method', '').lower()
-        super(Request, self).__init__(obj)
+        super(Request, self).__init__(obj, context=context)
 
     def diff(self, actual):
         assert isinstance(actual, Request)
