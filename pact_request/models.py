@@ -5,7 +5,9 @@ from .diff import diff_hash_with_rules
 
 
 class BaseModel(Model):
-    pass
+    def __init__(self, *args, **kwargs):
+        super(BaseModel, self).__init__(*args, **kwargs)
+        self.validate()
 
 
 class DiffModel(BaseModel):
